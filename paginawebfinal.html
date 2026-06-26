@@ -1,0 +1,923 @@
+﻿<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>MatOpiniones | UMSA</title>
+    <meta name="description" content="Plataforma estudiantil de la FCPN - UMSA NO OFICIAL para calificar docentes de Informática y Matemática de forma anónima.">
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+    
+    <style>
+        body { font-family: 'Plus Jakarta Sans', sans-serif; background-color: #0b1120; color: #e2e8f0; }
+        .no-scrollbar::-webkit-scrollbar { display: none; }
+        .no-scrollbar { -ms-overflow-style: none; scrollbar-width: none; }
+        .glass-panel { background: #151c2f; border: 1px solid rgba(255, 255, 255, 0.05); }
+        .input-dark { background: #0f172a; border: 1px solid rgba(255,255,255,0.1); color: white; }
+        .input-dark:focus { border-color: #8b5cf6; outline: none; box-shadow: 0 0 0 2px rgba(139, 92, 246, 0.2); }
+    </style>
+</head>
+<body class="min-h-screen flex flex-col selection:bg-violet-500/30 selection:text-violet-200">
+
+    <!-- TOPBAR -->
+    <header class="border-b border-white/5 bg-[#0b1120]/80 backdrop-blur-md sticky top-0 z-40">
+        <div class="max-w-7xl mx-auto px-6 h-20 flex items-center justify-between">
+            <div class="flex items-center gap-4 cursor-pointer" onclick="window.cambiarVista('inicio')">
+                <div class="w-10 h-10 rounded-xl bg-gradient-to-br from-amber-400 to-orange-500 flex items-center justify-center text-slate-950 font-black shadow-lg shadow-amber-500/20">
+                    <i class="fa-solid fa-square-root-variable"></i>
+                </div>
+                <div><span class="font-extrabold tracking-tight text-lg sm:text-xl text-white">Reseñas sobre <span class="text-amber-500">docentes</span></span></div>
+            </div>
+            <div id="panel-sesion">
+                <button onclick="window.iniciarSesionGoogle()" class="bg-[#1e293b] hover:bg-[#334155] border border-white/10 text-white text-sm font-semibold py-2.5 px-5 rounded-full flex items-center gap-3 transition-all duration-300">
+                    <i class="fa-brands fa-google text-amber-500"></i> Acceder
+                </button>
+            </div>
+        </div>
+    </header>
+
+    <main class="flex-1 max-w-7xl w-full mx-auto px-4 py-8 relative">
+
+        <!-- ========================================================= -->
+        <!-- VISTA 1: INICIO Y BUSCADOR -->
+        <!-- ========================================================= -->
+        <div id="vista-inicio" class="space-y-8 animate-fade-in">
+            
+            <div class="text-center max-w-2xl mx-auto mb-10 pt-8">
+                <h1 class="text-4xl font-extrabold text-white mb-4">Descubre y califica a tus docentes</h1>
+                <p class="text-slate-400">Busca por nombre, materia o filtra por periodo académico.</p>
+            </div>
+
+            <!-- BARRA DE BÚSQUEDA Y FILTROS -->
+            <div class="glass-panel p-4 rounded-3xl flex flex-col md:flex-row gap-4 items-center shadow-2xl">
+                <div class="relative w-full md:flex-1">
+                    <i class="fa-solid fa-magnifying-glass absolute left-4 top-4 text-slate-400"></i>
+                    <input type="text" id="buscador-input" placeholder="Buscar docente o materia..." onkeyup="window.ejecutarBusqueda()" class="w-full input-dark rounded-2xl pl-12 pr-4 py-3.5 font-medium transition-all">
+                </div>
+                <div class="w-full md:w-48">
+                    <select id="filtro-carrera" onchange="window.ejecutarBusqueda()" class="w-full input-dark rounded-2xl px-4 py-3.5 font-medium appearance-none cursor-pointer">
+                        <option value="Todas">Todas las Carreras</option>
+                        <option value="Informática">Informática</option>
+                        <option value="Matemática">Matemática</option>
+                    </select>
+                </div>
+            </div>
+
+            <!-- DIRECTORIO (RESULTADOS) -->
+            <div>
+                <h2 class="text-lg font-bold text-white mb-6 pl-2">Docentes encontrados <span id="contador-resultados" class="text-amber-500 bg-amber-500/10 px-2 py-0.5 rounded ml-2 text-sm">0</span></h2>
+                <div id="contenedor-directorio" class="grid md:grid-cols-2 lg:grid-cols-3 gap-6">
+                    <!-- Se llena con JS -->
+                </div>
+            </div>
+
+        </div>
+
+        <!-- ========================================================= -->
+        <!-- VISTA 2: PERFIL DEL DOCENTE (Estilo Imagen 1) -->
+        <!-- ========================================================= -->
+        <div id="vista-perfil" class="hidden space-y-6">
+            
+            <button onclick="window.cambiarVista('inicio')" class="text-slate-400 hover:text-white font-semibold text-sm flex items-center gap-2 mb-2 transition-colors">
+                <i class="fa-solid fa-arrow-left"></i> Volver al buscador
+            </button>
+
+            <!-- CONTENEDOR INYECTADO POR JS -->
+            <div id="contenedor-perfil-dinamico"></div>
+
+        </div>
+
+    </main>
+
+    <!-- ========================================================= -->
+    <!-- MODAL DE CALIFICACIÓN (Estilo Imagen 2 - Dark Violet) -->
+    <!-- ========================================================= -->
+    <div id="modal-opinar" class="fixed inset-0 bg-[#070b14]/95 backdrop-blur-sm z-50 flex justify-center p-2 sm:p-4 hidden opacity-0 transition-opacity duration-300 overflow-y-auto">
+        <div class="bg-[#111827] rounded-3xl max-w-2xl w-full shadow-2xl border border-white/5 my-auto h-fit">
+            
+            <!-- Header Modal -->
+            <div class="px-6 py-5 border-b border-white/5 flex justify-between items-center bg-[#151c2f] rounded-t-3xl">
+                <div class="flex items-center gap-3">
+                    <div class="w-10 h-10 bg-amber-500/10 rounded-xl flex items-center justify-center text-amber-500 border border-amber-500/20">
+                        <i class="fa-solid fa-star"></i>
+                    </div>
+                    <div>
+                        <h2 class="font-bold text-white tracking-wide">CALIFICANDO A: <span class="text-amber-400" id="modal-titulo-docente">DOCENTE</span></h2>
+                        <p class="text-xs text-slate-400">Tu opinión es confidencial y mejora la educación.</p>
+                    </div>
+                </div>
+                <button type="button" onclick="window.cerrarModal()" class="w-8 h-8 bg-white/5 hover:bg-white/10 rounded-full flex items-center justify-center text-slate-400 hover:text-white transition-colors">
+                    <i class="fa-solid fa-xmark"></i>
+                </button>
+            </div>
+
+            <form id="formulario-resena" class="p-6 space-y-6">
+                
+                <!-- Datos Académicos -->
+                <div class="grid sm:grid-cols-3 gap-4 bg-[#151c2f] p-4 rounded-2xl border border-white/5">
+                    <div class="sm:col-span-3">
+                        <label class="block text-xs font-semibold text-slate-400 mb-1">Materia cursada:</label>
+                        <select id="form-materia" class="w-full input-dark rounded-xl p-2.5 text-sm"></select>
+                    </div>
+                    <div>
+                        <label class="block text-xs font-semibold text-slate-400 mb-1">Semestre:</label>
+                        <select id="form-semestre" class="w-full input-dark rounded-xl p-2.5 text-sm">
+                            <option value="I Semestre">I Semestre</option><option value="II Semestre">II Semestre</option><option value="Verano">Verano</option><option value="Invierno">Invierno</option>
+                        </select>
+                    </div>
+                    <div>
+                        <label class="block text-xs font-semibold text-slate-400 mb-1">Gestión:</label>
+                        <select id="form-gestion" class="w-full input-dark rounded-xl p-2.5 text-sm">
+                            <option value="2026">2026</option><option value="2025">2025</option><option value="2024">2024</option>
+                        </select>
+                    </div>
+                </div>
+
+                <!-- 1. PEDAGOGÍA -->
+                <div class="bg-[#151c2f] p-5 rounded-2xl border border-white/5 space-y-4">
+                    <h3 class="text-violet-400 font-bold text-sm uppercase tracking-widest flex items-center gap-2 mb-4">
+                        <i class="fa-solid fa-graduation-cap"></i> 1. Pedagogía
+                    </h3>
+                    
+                    <div class="flex flex-col sm:flex-row sm:items-center justify-between gap-3 bg-[#0f172a] p-3 rounded-xl border border-white/5">
+                        <div class="flex gap-3 items-start"><div class="w-6 h-6 shrink-0 bg-violet-500/20 text-violet-400 rounded flex items-center justify-center font-bold text-xs">1</div><div><p class="text-sm text-slate-200 font-semibold">Sus explicaciones son claras.</p></div></div>
+                        <select id="form-q1" class="w-full sm:w-48 input-dark rounded-lg p-2 text-xs font-bold text-slate-300"><option value="5">★ 5 - Muy de acuerdo</option><option value="4">★ 4 - De acuerdo</option><option value="3">★ 3 - Neutral</option><option value="2">★ 2 - En desacuerdo</option><option value="1">★ 1 - Muy en desacuerdo</option></select>
+                    </div>
+                    <div class="flex flex-col sm:flex-row sm:items-center justify-between gap-3 bg-[#0f172a] p-3 rounded-xl border border-white/5">
+                        <div class="flex gap-3 items-start"><div class="w-6 h-6 shrink-0 bg-violet-500/20 text-violet-400 rounded flex items-center justify-center font-bold text-xs">2</div><div><p class="text-sm text-slate-200 font-semibold">Responde adecuadamente preguntas.</p></div></div>
+                        <select id="form-q2" class="w-full sm:w-48 input-dark rounded-lg p-2 text-xs font-bold text-slate-300"><option value="5">★ 5 - Muy de acuerdo</option><option value="4">★ 4 - De acuerdo</option><option value="3">★ 3 - Neutral</option><option value="2">★ 2 - En desacuerdo</option><option value="1">★ 1 - Muy en desacuerdo</option></select>
+                    </div>
+                    <div class="flex flex-col sm:flex-row sm:items-center justify-between gap-3 bg-[#0f172a] p-3 rounded-xl border border-white/5">
+                        <div class="flex gap-3 items-start"><div class="w-6 h-6 shrink-0 bg-violet-500/20 text-violet-400 rounded flex items-center justify-center font-bold text-xs">3</div><div><p class="text-sm text-slate-200 font-semibold">Escucha opiniones de estudiantes.</p></div></div>
+                        <select id="form-q3" class="w-full sm:w-48 input-dark rounded-lg p-2 text-xs font-bold text-slate-300"><option value="5">★ 5 - Muy de acuerdo</option><option value="4">★ 4 - De acuerdo</option><option value="3">★ 3 - Neutral</option><option value="2">★ 2 - En desacuerdo</option><option value="1">★ 1 - Muy en desacuerdo</option></select>
+                    </div>
+                    <div class="flex flex-col sm:flex-row sm:items-center justify-between gap-3 bg-[#0f172a] p-3 rounded-xl border border-white/5">
+                        <div class="flex gap-3 items-start"><div class="w-6 h-6 shrink-0 bg-violet-500/20 text-violet-400 rounded flex items-center justify-center font-bold text-xs">4</div><div><p class="text-sm text-slate-200 font-semibold">Despierta interés por la materia.</p></div></div>
+                        <select id="form-q4" class="w-full sm:w-48 input-dark rounded-lg p-2 text-xs font-bold text-slate-300"><option value="5">★ 5 - Muy de acuerdo</option><option value="4">★ 4 - De acuerdo</option><option value="3">★ 3 - Neutral</option><option value="2">★ 2 - En desacuerdo</option><option value="1">★ 1 - Muy en desacuerdo</option></select>
+                    </div>
+                </div>
+
+                <!-- 2. RESPONSABILIDAD -->
+                <div class="bg-[#151c2f] p-5 rounded-2xl border border-white/5 space-y-4">
+                    <h3 class="text-blue-400 font-bold text-sm uppercase tracking-widest flex items-center gap-2 mb-4">
+                        <i class="fa-solid fa-user-check"></i> 2. Responsabilidad
+                    </h3>
+                    
+                    <div class="flex flex-col sm:flex-row sm:items-center justify-between gap-3 bg-[#0f172a] p-3 rounded-xl border border-white/5">
+                        <div class="flex gap-3 items-start"><div class="w-6 h-6 shrink-0 bg-blue-500/20 text-blue-400 rounded flex items-center justify-center font-bold text-xs">5</div><div><p class="text-sm text-slate-200 font-semibold">Asiste regularmente a clases.</p></div></div>
+                        <select id="form-q5" class="w-full sm:w-48 input-dark rounded-lg p-2 text-xs font-bold text-slate-300"><option value="5">★ 5 - Siempre</option><option value="4">★ 4 - Casi siempre</option><option value="3">★ 3 - Algunas veces</option><option value="2">★ 2 - Rara vez</option><option value="1">★ 1 - Nunca</option></select>
+                    </div>
+                    <div class="flex flex-col sm:flex-row sm:items-center justify-between gap-3 bg-[#0f172a] p-3 rounded-xl border border-white/5">
+                        <div class="flex gap-3 items-start"><div class="w-6 h-6 shrink-0 bg-blue-500/20 text-blue-400 rounded flex items-center justify-center font-bold text-xs">6</div><div><p class="text-sm text-slate-200 font-semibold">Es puntual (inicio y desarrollo).</p></div></div>
+                        <select id="form-q6" class="w-full sm:w-48 input-dark rounded-lg p-2 text-xs font-bold text-slate-300"><option value="5">★ 5 - Siempre</option><option value="4">★ 4 - Casi siempre</option><option value="3">★ 3 - Algunas veces</option><option value="2">★ 2 - Rara vez</option><option value="1">★ 1 - Nunca</option></select>
+                    </div>
+                    <div class="flex flex-col sm:flex-row sm:items-center justify-between gap-3 bg-[#0f172a] p-3 rounded-xl border border-white/5">
+                        <div class="flex gap-3 items-start"><div class="w-6 h-6 shrink-0 bg-blue-500/20 text-blue-400 rounded flex items-center justify-center font-bold text-xs">7</div><div><p class="text-sm text-slate-200 font-semibold">Cumple horarios de consulta.</p></div></div>
+                        <select id="form-q7" class="w-full sm:w-48 input-dark rounded-lg p-2 text-xs font-bold text-slate-300"><option value="5">★ 5 - Siempre</option><option value="4">★ 4 - Casi siempre</option><option value="3">★ 3 - Algunas veces</option><option value="2">★ 2 - Rara vez</option><option value="1">★ 1 - Nunca</option></select>
+                    </div>
+                    <div class="flex flex-col sm:flex-row sm:items-center justify-between gap-3 bg-[#0f172a] p-3 rounded-xl border border-white/5">
+                        <div class="flex gap-3 items-start"><div class="w-6 h-6 shrink-0 bg-blue-500/20 text-blue-400 rounded flex items-center justify-center font-bold text-xs">8</div><div><p class="text-sm text-slate-200 font-semibold">Entrega notas oportunamente.</p></div></div>
+                        <select id="form-q8" class="w-full sm:w-48 input-dark rounded-lg p-2 text-xs font-bold text-slate-300"><option value="5">★ 5 - Siempre</option><option value="4">★ 4 - Casi siempre</option><option value="3">★ 3 - Algunas veces</option><option value="2">★ 2 - Rara vez</option><option value="1">★ 1 - Nunca</option></select>
+                    </div>
+                </div>
+
+                <!-- 3. EVALUACIÓN -->
+                <div class="bg-[#151c2f] p-5 rounded-2xl border border-white/5 space-y-4 border-l-4 border-l-red-500/50">
+                    <h3 class="text-red-400 font-bold text-sm uppercase tracking-widest flex items-center gap-2 mb-4">
+                        <i class="fa-solid fa-chart-line"></i> 3. Evaluación
+                    </h3>
+                    
+                    <div class="flex flex-col sm:flex-row sm:items-center justify-between gap-3 bg-[#0f172a] p-3 rounded-xl border border-white/5">
+                        <div class="flex gap-3 items-start"><div class="w-6 h-6 shrink-0 bg-red-500/20 text-red-400 rounded flex items-center justify-center font-bold text-xs">9</div><div><p class="text-sm text-slate-200 font-semibold">Las evaluaciones son justas / acordes.</p></div></div>
+                        <select id="form-q9" class="w-full sm:w-48 input-dark rounded-lg p-2 text-xs font-bold text-slate-300"><option value="5">★ 5 - Muy de acuerdo</option><option value="4">★ 4 - De acuerdo</option><option value="3">★ 3 - Neutral</option><option value="2">★ 2 - En desacuerdo</option><option value="1">★ 1 - Muy en desacuerdo</option></select>
+                    </div>
+                    <div class="flex flex-col sm:flex-row sm:items-center justify-between gap-3 bg-[#0f172a] p-3 rounded-xl border border-white/5">
+                        <div class="flex gap-3 items-start"><div class="w-6 h-6 shrink-0 bg-red-500/20 text-red-400 rounded flex items-center justify-center font-bold text-xs">10</div><div><p class="text-sm text-slate-200 font-semibold">Dificultad de los exámenes.</p></div></div>
+                        <select id="form-q10" class="w-full sm:w-48 input-dark rounded-lg p-2 text-xs font-bold text-amber-300 border-amber-500/30">
+                            <!-- NOTAS INVERTIDAS SEGÚN INSTRUCCIÓN -->
+                            <option value="5">★ 5 - Muy fácil</option>
+                            <option value="4">★ 4 - Fácil</option>
+                            <option value="3" selected>★ 3 - Adecuada</option>
+                            <option value="2">★ 2 - Difícil</option>
+                            <option value="1">★ 1 - Muy difícil</option>
+                        </select>
+                    </div>
+                </div>
+
+                <!-- COMENTARIOS OBLIGATORIOS -->
+                <div class="bg-[#151c2f] p-5 rounded-2xl border border-white/5">
+                    <label class="block font-semibold text-white mb-2">Comentarios adicionales (Obligatorio):</label>
+                    <textarea id="form-texto" rows="3" required placeholder="Escribe tu opinión constructiva para ayudar a otros estudiantes..." class="w-full input-dark rounded-xl p-4 text-sm"></textarea>
+                </div>
+
+                <!-- BOTONES FOOTER -->
+                <div class="pt-2 flex flex-col-reverse sm:flex-row items-center justify-between gap-4">
+                    <div class="flex items-center gap-2 text-xs text-slate-500">
+                        <i class="fa-solid fa-shield-halved text-violet-500"></i> Tu opinión es confidencial
+                    </div>
+                    <div class="flex gap-3 w-full sm:w-auto">
+                        <button type="button" onclick="window.cerrarModal()" class="flex-1 sm:flex-none px-6 py-3 bg-[#1e293b] hover:bg-[#334155] text-white font-semibold rounded-xl transition-all">Cancelar</button>
+                        <button type="button" onclick="window.guardarResenaFirebase()" id="btn-publicar" class="flex-1 sm:flex-none px-6 py-3 bg-violet-600 hover:bg-violet-500 text-white font-bold rounded-xl shadow-lg shadow-violet-500/20 transition-all flex items-center justify-center gap-2">
+                            <i class="fa-solid fa-check"></i> Guardar evaluación
+                        </button>
+                    </div>
+                </div>
+            </form>
+        </div>
+    </div>
+
+
+    <!-- ========================================================= -->
+    <!-- MOTOR LÓGICO Y FIREBASE -->
+    <!-- ========================================================= -->
+    <script type="module">
+        import { initializeApp } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-app.js";
+        import { getAuth, signInWithPopup, GoogleAuthProvider, signOut } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-auth.js";
+        import { getFirestore, collection, addDoc, query, where, getDocs, onSnapshot, serverTimestamp, doc, getDoc, setDoc } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore.js";
+
+        const firebaseConfig = {
+            apiKey: "AIzaSyDkkCLvATEl4D2Fm7Jd5dUTka1PDpcBzvE",
+            authDomain: "pizarron-fcpn.firebaseapp.com",
+            projectId: "pizarron-fcpn",
+            storageBucket: "pizarron-fcpn.firebasestorage.app",
+            messagingSenderId: "855156719787",
+            appId: "1:855156719787:web:be1fb818275cb767f6f7ee"
+        };
+
+        const app = initializeApp(firebaseConfig);
+        const auth = getAuth(app);
+        const db = getFirestore(app);
+
+        // =======================================================================
+        // BASE DE DATOS LOCAL: DOCENTES
+        // =======================================================================
+        // =======================================================================
+        // BASE DE DATOS LOCAL: DOCENTES (ACTUALIZADO GESTIÓN I/2026 - MATEMÁTICA)
+        // =======================================================================
+        // =======================================================================
+        // BASE DE DATOS LOCAL: DOCENTES UNIFICADOS (GESTIÓN I/2026 - MATE & INFO)
+        // =======================================================================
+        const DIRECTORIO_DOCENTES = [
+            {
+                id_docente: "eugenio_castanos",
+                nombre: "Lic. Eugenio Castaños Calle",
+                area: "Matemática",
+                carreras: "Informática y Matemática",
+                materias: ["Cálculo I (Informática)", "Cálculo I (Matemática)", "Cálculo II (Informática)"]
+            },
+            {
+                id_docente: "hernan_laime",
+                nombre: "Lic. Hernán Laime",
+                area: "Matemática",
+                carreras: "Informática y Matemática",
+                materias: ["Álgebra I (Matemática)", "Álgebra Lineal (Informática)"]
+            },
+            {
+                id_docente: "willy_condori",
+                nombre: "Lic. Willy Condori",
+                area: "Matemática",
+                carreras: "Matemática",
+                materias: ["Cálculo Diferencial e Integral I (Matemática)"]
+            },
+            {
+                id_docente: "marco_colque",
+                nombre: "Lic. Marco A. Colque",
+                area: "Matemática",
+                carreras: "Informática y Matemática",
+                materias: ["Geometría I (Matemática)", "Álgebra (Informática)"]
+            },
+            {
+                id_docente: "charlie_lozano",
+                nombre: "Lic. Charlie Lozano",
+                area: "Matemática",
+                carreras: "Matemática",
+                materias: ["Heurística Matemática (Matemática)"]
+            },
+            {
+                id_docente: "brigida_carvajal",
+                nombre: "Lic. Brigida Carvajal",
+                area: "Matemática",
+                carreras: "Matemática",
+                materias: ["Computación Científica I (Matemática)"]
+            },
+            {
+                id_docente: "fabiola_villanueva",
+                nombre: "Lic. Fabiola Villanueva",
+                area: "Matemática",
+                carreras: "Matemática",
+                materias: ["Álgebra Lineal I (Matemática)", "Topología General (Matemática)"]
+            },
+            {
+                id_docente: "paola_patzi",
+                nombre: "Lic. Paola Patzi",
+                area: "Matemática",
+                carreras: "Matemática",
+                materias: ["Cálculo Diferencial e Integral II (Matemática)", "Optimización Dinámica Aplicada (Matemática)"]
+            },
+            {
+                id_docente: "porfirio_sunagua",
+                nombre: "Lic. Porfirio Suñagua",
+                area: "Matemática",
+                carreras: "Matemática",
+                materias: ["Geometría II (Matemática)", "Análisis Numérico (Matemática)"]
+            },
+            {
+                id_docente: "alejandro_apaza",
+                nombre: "Lic. Alejandro Apaza",
+                area: "Matemática",
+                carreras: "Matemática",
+                materias: ["Teoría de Números (Matemática)"]
+            },
+            {
+                id_docente: "marcelo_machicao",
+                nombre: "Lic. Marcelo Machicao",
+                area: "Matemática",
+                carreras: "Matemática",
+                materias: ["Álgebra II (Matemática)", "Lógica Matemática y Teoría de Conjuntos (Matemática)", "Teoría de Grafos (Matemática)"]
+            },
+            {
+                id_docente: "ramiro_choque",
+                nombre: "Lic. Ramiro Choque",
+                area: "Matemática",
+                carreras: "Informática y Matemática",
+                materias: ["Análisis Real (Matemática)", "Álgebra Lineal (Informática)", "Álgebra (Informática)"]
+            },
+            {
+                id_docente: "raul_borda",
+                nombre: "Lic. Raúl Borda",
+                area: "Matemática",
+                carreras: "Informática y Matemática",
+                materias: ["Análisis Combinatorio (Matemática)", "Álgebra Lineal (Informática)", "Álgebra (Informática)"]
+            },
+            {
+                id_docente: "efrain_cruz",
+                nombre: "Lic. Efrain Cruz",
+                area: "Matemática",
+                carreras: "Matemática",
+                materias: ["Ecuaciones Diferenciales (Matemática)"]
+            },
+            {
+                id_docente: "juan_marcos",
+                nombre: "Lic. Juan Marcos O.",
+                area: "Matemática",
+                carreras: "Matemática",
+                materias: ["Física I (Matemática)"]
+            },
+            {
+                id_docente: "zenon_condori",
+                nombre: "Lic. Zenón Condori",
+                area: "Matemática",
+                carreras: "Informática y Matemática",
+                materias: ["Álgebra Lineal II (Matemática)", "Álgebra Lineal (Informática)", "Cálculo II (Informática)"]
+            },
+            {
+                id_docente: "victor_patty",
+                nombre: "Lic. Victor Patty",
+                area: "Matemática",
+                carreras: "Matemática",
+                materias: ["Análisis en Rn (Matemática)", "Geometría Diferencial (Matemática)"]
+            },
+            {
+                id_docente: "jimmy_santamaria",
+                nombre: "Lic. Jimmy Santamaria",
+                area: "Matemática",
+                carreras: "Matemática",
+                materias: ["Análisis I (Matemática)"]
+            },
+            {
+                id_docente: "helder_lopez",
+                nombre: "Lic. Helder López",
+                area: "Matemática",
+                carreras: "Informática y Matemática",
+                materias: ["Álgebra Abstracta I (Matemática)", "Cálculo I (Informática)"]
+            },
+            {
+                id_docente: "hugo_paredes",
+                nombre: "Lic. Hugo Paredes",
+                area: "Matemática",
+                carreras: "Informática y Matemática",
+                materias: ["Teoría de Optimización Lineal (Matemática)", "Álgebra (Informática)"]
+            },
+            {
+                id_docente: "daysi_arroyo",
+                nombre: "Lic. Daysi Arroyo",
+                area: "Matemática",
+                carreras: "Matemática",
+                materias: ["Modelización Matemática (Matemática)"]
+            },
+            {
+                id_docente: "miguel_yucra",
+                nombre: "Lic. Miguel Yucra",
+                area: "Matemática",
+                carreras: "Matemática",
+                materias: ["Análisis Complejo I (Matemática)", "Teoría de la Medida en Espacios Euclidianos (Matemática)"]
+            },
+            {
+                id_docente: "fernando_vera",
+                nombre: "Dr. Fernando Vera",
+                area: "Matemática",
+                carreras: "Matemática",
+                materias: ["Álgebra Abstracta II (Matemática)", "Criptografía (Matemática)"]
+            },
+            {
+                id_docente: "elvis_valero",
+                nombre: "Lic. Elvis Valero",
+                area: "Matemática",
+                carreras: "Informática y Matemática",
+                materias: ["Teoría de Juegos (Matemática)", "Álgebra Lineal (Informática)"]
+            },
+            {
+                id_docente: "ernesto_cupe",
+                nombre: "Lic. Ernesto Cupé",
+                area: "Matemática",
+                carreras: "Matemática",
+                materias: ["Modelos Matemáticos (Matemática)"]
+            },
+            // ===================================================================
+            // NUEVOS DOCENTES EXCLUSIVOS DE LA CARRERA DE INFORMÁTICA (I/2026)
+            // ===================================================================
+            {
+                id_docente: "ronald_silva",
+                nombre: "Lic. Ronald Silva",
+                area: "Matemática",
+                carreras: "Informática",
+                materias: ["Álgebra (Informática)", "Cálculo I (Informática)", "Cálculo III (Informática)"]
+            },
+            {
+                id_docente: "hebe_condori",
+                nombre: "Lic. Hebe Condori",
+                area: "Matemática",
+                carreras: "Informática",
+                materias: ["Cálculo II (Informática)"]
+            },
+            {
+                id_docente: "miriam_cusi",
+                nombre: "Lic. Miriam Cusi",
+                area: "Matemática",
+                carreras: "Informática",
+                materias: ["Cálculo II (Informática)"]
+            },
+            {
+                id_docente: "rudy_mayta",
+                nombre: "Lic. Rudy Mayta",
+                area: "Matemática",
+                carreras: "Informática",
+                materias: ["Cálculo II (Informática)"]
+            },
+            {
+                id_docente: "oscar_bobarin",
+                nombre: "Lic. Oscar Bobarin",
+                area: "Matemática",
+                carreras: "Informática",
+                materias: ["Cálculo III (Informática)", "Cálculo IV (Informática)"]
+            },
+            {
+                id_docente: "erick_mamani",
+                nombre: "Lic. Erick Mamani",
+                area: "Matemática",
+                carreras: "Informática",
+                materias: ["Cálculo I (Informática)"]
+            }
+        ];
+        // ESTADO GLOBAL
+        window.docenteActivo = null; 
+        window.materiaActualSeleccionada = "Todas";
+        window.resenasBD = [];
+        window.graficoBarras = null;
+        window.usuarioActual = null; 
+        window.usuarioUid = null;
+        let unsubscribeResenas = null; // Para limpiar conexiones
+
+        // =======================================================================
+        // LÓGICA DE NAVEGACIÓN Y BUSCADOR
+        // =======================================================================
+        window.cambiarVista = (vista, id_docente = null) => {
+            if (vista === 'inicio') {
+                document.getElementById('vista-perfil').classList.add('hidden');
+                document.getElementById('vista-inicio').classList.remove('hidden');
+                if(unsubscribeResenas) unsubscribeResenas();
+                window.ejecutarBusqueda();
+            } else if (vista === 'perfil') {
+                window.docenteActivo = DIRECTORIO_DOCENTES.find(d => d.id_docente === id_docente);
+                window.materiaActualSeleccionada = "Todas";
+                document.getElementById('vista-inicio').classList.add('hidden');
+                document.getElementById('vista-perfil').classList.remove('hidden');
+                construirPerfilDocente();
+                conectarBaseDatosResenas();
+            }
+        };
+
+        window.ejecutarBusqueda = () => {
+            const texto = document.getElementById('buscador-input').value.toLowerCase();
+            const filtroCarrera = document.getElementById('filtro-carrera').value;
+            const contenedor = document.getElementById('contenedor-directorio');
+            
+            let resultados = DIRECTORIO_DOCENTES.filter(docente => {
+                const coincideTexto = docente.nombre.toLowerCase().includes(texto) || docente.materias.some(m => m.toLowerCase().includes(texto));
+                const coincideCarrera = filtroCarrera === "Todas" || docente.carreras.includes(filtroCarrera) || docente.materias.some(m => m.includes(filtroCarrera));
+                return coincideTexto && coincideCarrera;
+            });
+
+            document.getElementById('contador-resultados').innerText = resultados.length;
+            contenedor.innerHTML = "";
+
+            if (resultados.length === 0) {
+                contenedor.innerHTML = `<div class="col-span-full text-center py-10 text-slate-500 bg-white/5 rounded-2xl">No se encontraron docentes con esos filtros.</div>`;
+                return;
+            }
+
+            resultados.forEach(docente => {
+                let etiquetasMaterias = docente.materias.slice(0, 2).map(m => `<span class="text-[10px] bg-[#1e293b] text-slate-300 px-2 py-1 rounded border border-white/5 truncate max-w-full">${m}</span>`).join('');
+                if(docente.materias.length > 2) etiquetasMaterias += `<span class="text-[10px] bg-[#1e293b] text-slate-400 px-2 py-1 rounded border border-white/5">+${docente.materias.length - 2}</span>`;
+
+                contenedor.innerHTML += `
+                    <div onclick="window.cambiarVista('perfil', '${docente.id_docente}')" class="glass-panel p-6 rounded-3xl hover:border-violet-500/50 transition-all cursor-pointer group flex flex-col justify-between h-full">
+                        <div>
+                            <div class="text-[10px] font-bold text-amber-500 tracking-widest uppercase mb-3"><i class="fa-solid fa-calculator mr-1"></i> ${docente.area}</div>
+                            <h3 class="text-xl font-bold text-white mb-2 group-hover:text-violet-400 transition-colors">${docente.nombre}</h3>
+                            <p class="text-xs text-slate-400 mb-4 line-clamp-2"><i class="fa-solid fa-graduation-cap"></i> ${docente.carreras}</p>
+                        </div>
+                        <div class="flex flex-wrap gap-1 mt-auto pt-4 border-t border-white/5">
+                            ${etiquetasMaterias}
+                        </div>
+                    </div>
+                `;
+            });
+        };
+
+        // =======================================================================
+        // LÓGICA DEL PERFIL Y GRÁFICOS (REDISEÑO IMAGEN 1)
+        // =======================================================================
+        function construirPerfilDocente() {
+            const cont = document.getElementById("contenedor-perfil-dinamico");
+            
+            // Botones Materias
+            let botonesMaterias = `<button onclick="window.filtrarMateria('Todas')" id="btn-mat-Todas" class="px-5 py-2.5 rounded-xl text-sm font-bold transition-all bg-violet-600 text-white shadow-lg shadow-violet-600/20 border border-violet-500"> <i class="fa-solid fa-border-all mr-2"></i> Todas</button>`;
+            window.docenteActivo.materias.forEach(mat => {
+                let nombreCorto = mat.replace("Informática", "Info").replace("Matemática", "Mate");
+                botonesMaterias += `<button onclick="window.filtrarMateria('${mat}')" id="btn-mat-${mat.replace(/\s/g, '')}" class="px-5 py-2.5 rounded-xl text-sm font-semibold transition-all bg-transparent text-slate-400 hover:text-white border border-transparent hover:border-white/10 hover:bg-white/5"><i class="fa-solid fa-book-open mr-2 text-slate-500"></i> ${nombreCorto}</button>`;
+            });
+
+            // Modal Select
+            const selectModal = document.getElementById("form-materia");
+            selectModal.innerHTML = "";
+            window.docenteActivo.materias.forEach(mat => { selectModal.innerHTML += `<option value="${mat}">${mat}</option>`; });
+            document.getElementById("modal-titulo-docente").innerText = window.docenteActivo.nombre.toUpperCase();
+
+            cont.innerHTML = `
+                <!-- TOP PANEL (Estilo Imagen 1) -->
+                <div class="grid lg:grid-cols-3 gap-6">
+                    
+                    <!-- Tarjeta Izquierda (Info) -->
+                    <div class="lg:col-span-2 rounded-3xl p-8 relative overflow-hidden flex flex-col justify-between bg-gradient-to-br from-[#1e1b4b] to-[#111827] border border-white/5">
+                        <div class="absolute -top-32 -right-32 w-96 h-96 bg-violet-600/10 rounded-full blur-3xl"></div>
+                        
+                        <div class="relative z-10">
+                            <div class="inline-flex items-center gap-2 px-3 py-1 rounded-lg bg-violet-500/10 border border-violet-500/20 text-violet-400 text-xs font-bold uppercase tracking-widest mb-4">
+                                <i class="fa-solid fa-calculator"></i> ÁREA: ${window.docenteActivo.area}
+                            </div>
+                            <h1 class="text-4xl sm:text-5xl font-black text-white mb-3 tracking-tight">${window.docenteActivo.nombre}</h1>
+                            <p class="text-slate-300 flex items-center gap-2 text-sm"><i class="fa-solid fa-graduation-cap text-slate-500"></i> Dicta para: ${window.docenteActivo.carreras}</p>
+                        </div>
+                        
+                        <div class="mt-8 flex flex-col sm:flex-row sm:items-center gap-4 relative z-10">
+                            <div class="bg-[#0b1120]/50 border border-white/5 rounded-2xl p-4 flex items-center gap-5 w-fit">
+                                <div class="text-center">
+                                   <div class="text-5xl font-black text-amber-500" id="nota-promedio-docente">0.0</div>
+                                <div id="estrellas-promedio" class="flex gap-1 justify-center text-amber-500 text-base mt-2">
+                                    <i class="fa-regular fa-star"></i><i class="fa-regular fa-star"></i><i class="fa-regular fa-star"></i><i class="fa-regular fa-star"></i><i class="fa-regular fa-star"></i>
+                                </div>
+                                <div class="text-xs text-slate-400 mt-2"><span id="contador-opiniones">0</span> reseñas</div>
+                                </div>
+                                <div class="w-px h-16 bg-white/10"></div>
+                                <div class="pr-2">
+                                    <div class="w-6 h-6 text-slate-400 mb-1"><i class="fa-solid fa-globe"></i></div>
+                                    <div class="text-xs font-bold text-white uppercase tracking-wider">PROMEDIO GLOBAL</div>
+                                    <div class="text-[10px] text-slate-400">Basado en 10 preguntas</div>
+                                </div>
+                            </div>
+                            <button onclick="window.intentarOpinar()" class="bg-white hover:bg-slate-200 text-slate-900 font-bold py-4 px-6 rounded-2xl transition-all shadow-xl flex items-center justify-center gap-3 ml-auto w-full sm:w-auto h-fit">
+                                <i class="fa-solid fa-pen-to-square"></i> Dejar mi opinión
+                            </button>
+                        </div>
+                    </div>
+
+                    <!-- Tarjeta Derecha (Gráficas) -->
+                    <div class="glass-panel rounded-3xl p-6 border border-white/5 flex flex-col justify-center">
+                        <h3 class="text-xs font-bold text-slate-400 uppercase tracking-widest mb-6 flex items-center gap-2"><i class="fa-solid fa-chart-simple"></i> MÉTRICAS POR ÁREA</h3>
+                        
+                        <!-- Contenedor Custom de Barras -->
+                        <div class="space-y-5" id="contenedor-barras-custom">
+                            <!-- Inyectado por JS -->
+                        </div>
+                        
+                        <button onclick="window.toggleDetalles()" class="mt-8 w-full text-center py-2 text-xs font-bold text-amber-500 hover:text-amber-400 transition-colors">
+                            <i class="fa-solid fa-list-check mr-1"></i> Ver desglose exacto (10 preguntas)
+                        </button>
+                    </div>
+                </div>
+
+                <!-- PANEL DETALLES OCULTO -->
+                <div id="panel-detalles" class="hidden bg-[#070b14] p-6 lg:p-8 rounded-3xl border border-violet-500/30 mt-6 shadow-2xl transition-all">
+                    <div class="flex items-start justify-between border-b border-white/5 pb-5 mb-6">
+                        <div class="flex items-center gap-4">
+                            <div class="w-12 h-12 rounded-2xl bg-violet-600/20 border border-violet-500/30 flex items-center justify-center text-violet-400 text-xl shrink-0">
+                                <i class="fa-solid fa-chart-column"></i>
+                            </div>
+                            <div>
+                                <h3 class="text-lg font-extrabold text-white tracking-wide">Desglose exacto de las 10 preguntas</h3>
+                                <p class="text-xs text-slate-400 mt-0.5">Calificación promedio por pregunta basada en todas las opiniones recibidas.</p>
+                            </div>
+                        </div>
+                        <button type="button" onclick="window.toggleDetalles()" class="text-slate-500 hover:text-white transition-colors p-2"><i class="fa-solid fa-xmark text-lg"></i></button>
+                    </div>
+                    
+                    <div id="contenido-detalles" class="grid grid-cols-1 md:grid-cols-3 gap-6"></div>
+                </div>
+
+                <!-- SELECTOR DE MATERIAS -->
+                <div class="mt-8 bg-[#151c2f] p-2 rounded-2xl border border-white/5 flex overflow-x-auto no-scrollbar gap-1 mb-6">
+                    ${botonesMaterias}
+                </div>
+
+                <!-- LISTA DE COMENTARIOS -->
+                <div id="contenedor-comentarios" class="grid md:grid-cols-2 lg:grid-cols-3 gap-5">
+                    <div class="col-span-full text-center py-12 text-slate-500"><i class="fa-solid fa-circle-notch fa-spin text-2xl mb-3"></i><br>Cargando reseñas...</div>
+                </div>
+
+                <!-- FOOTER AVISO -->
+                <div class="mt-6 glass-panel p-4 rounded-2xl flex flex-col sm:flex-row items-center gap-4 text-xs text-slate-400">
+                    <div class="w-8 h-8 rounded-full border border-slate-600 flex items-center justify-center shrink-0"><i class="fa-solid fa-info"></i></div>
+                    <p>Tu opinión es anónima y confidencial. Ayuda a mejorar la calidad educativa para todos.</p>
+                </div>
+            `;
+        }
+
+        window.toggleDetalles = () => { document.getElementById('panel-detalles').classList.toggle('hidden'); };
+
+        // =======================================================================
+        // FIREBASE: AUTENTICACIÓN
+        // =======================================================================
+        auth.onAuthStateChanged(async (user) => {
+            if (user) {
+                window.usuarioUid = user.uid;
+                const userRef = doc(db, "usuarios", user.uid);
+                const docSnap = await getDoc(userRef);
+                if (docSnap.exists()) { window.usuarioActual = docSnap.data().alias; actualizarBarraSesion(); } 
+                else {
+                    let alias = "";
+                    while (!alias || alias.trim().length < 3) { alias = prompt("Crea un NOMBRE DE USUARIO PÚBLICO (permanente):"); if (alias === null) { signOut(auth); return; } }
+                    await setDoc(userRef, { alias: alias.trim(), fechaRegistro: serverTimestamp() });
+                    window.usuarioActual = alias.trim(); actualizarBarraSesion();
+                }
+            } else {
+                window.usuarioActual = null; window.usuarioUid = null;
+                document.getElementById("panel-sesion").innerHTML = `<button onclick="window.iniciarSesionGoogle()" class="bg-[#1e293b] hover:bg-[#334155] border border-white/10 text-white text-sm font-semibold py-2.5 px-5 rounded-full flex gap-3 transition-all"><i class="fa-brands fa-google text-amber-500"></i> Acceder</button>`;
+            }
+        });
+
+        window.iniciarSesionGoogle = async () => { try { await signInWithPopup(auth, new GoogleAuthProvider()); } catch (error) {} };
+        window.cerrarSesion = () => { signOut(auth); };
+        function actualizarBarraSesion() {
+            document.getElementById("panel-sesion").innerHTML = `<div class="flex items-center gap-3 bg-[#151c2f] border border-white/10 py-1.5 pl-2 pr-4 rounded-full"><div class="w-8 h-8 bg-violet-600 rounded-full flex items-center justify-center text-white font-bold text-sm shadow-inner">${window.usuarioActual.charAt(0).toUpperCase()}</div><span class="text-sm font-bold text-white">${window.usuarioActual}</span><button onclick="window.cerrarSesion()" class="ml-2 text-slate-400 hover:text-red-400" title="Cerrar sesión"><i class="fa-solid fa-right-from-bracket"></i></button></div>`;
+        }
+
+        // =======================================================================
+        // FIREBASE: GUARDAR RESEÑA
+        // =======================================================================
+        window.intentarOpinar = () => { if (!window.usuarioUid) alert("🔒 Inicia sesión con Google (Arriba a la derecha) para opinar."); else { document.getElementById("modal-opinar").classList.remove("hidden"); setTimeout(() => document.getElementById("modal-opinar").classList.remove("opacity-0"), 10); } };
+        window.cerrarModal = () => { document.getElementById("modal-opinar").classList.add("opacity-0"); setTimeout(() => document.getElementById("modal-opinar").classList.add("hidden"), 300); };
+
+        window.guardarResenaFirebase = async () => {
+            const texto = document.getElementById("form-texto").value.trim();
+            if(!texto) { alert("El comentario adicional es obligatorio."); return; }
+
+            const materiaSelec = document.getElementById("form-materia").value;
+            const btn = document.getElementById("btn-publicar"); btn.innerHTML = '<i class="fa-solid fa-spinner fa-spin"></i> Guardando...'; btn.disabled = true;
+
+            try {
+                const q = query(collection(db, "resenas"), where("uid", "==", window.usuarioUid), where("id_docente", "==", window.docenteActivo.id_docente), where("materia", "==", materiaSelec));
+                const querySnapshot = await getDocs(q);
+                if (!querySnapshot.empty) { alert("⚠️ Ya opinaste sobre esta materia. Solo se permite 1 reseña por estudiante por materia."); btn.innerHTML = '<i class="fa-solid fa-check"></i> Guardar evaluación'; btn.disabled = false; return; }
+
+                await addDoc(collection(db, "resenas"), {
+                    uid: window.usuarioUid, autor: window.usuarioActual, id_docente: window.docenteActivo.id_docente, materia: materiaSelec,
+                    semestre: document.getElementById("form-semestre").value, gestion: document.getElementById("form-gestion").value,
+                    q1: parseInt(document.getElementById("form-q1").value), q2: parseInt(document.getElementById("form-q2").value), q3: parseInt(document.getElementById("form-q3").value), q4: parseInt(document.getElementById("form-q4").value),
+                    q5: parseInt(document.getElementById("form-q5").value), q6: parseInt(document.getElementById("form-q6").value), q7: parseInt(document.getElementById("form-q7").value), q8: parseInt(document.getElementById("form-q8").value),
+                    q9: parseInt(document.getElementById("form-q9").value), q10: parseInt(document.getElementById("form-q10").value), // q10 ya viene invertida desde el HTML
+                    texto: texto, timestamp: serverTimestamp()
+                });
+                window.cerrarModal(); document.getElementById("formulario-resena").reset();
+            } catch (error) { alert("Error al guardar. Revisa tu conexión."); }
+            btn.innerHTML = '<i class="fa-solid fa-check"></i> Guardar evaluación'; btn.disabled = false;
+        };
+
+        // =======================================================================
+        // FIREBASE: LEER Y MOSTRAR DATOS
+        // =======================================================================
+        function conectarBaseDatosResenas() {
+            const q = query(collection(db, "resenas"), where("id_docente", "==", window.docenteActivo.id_docente));
+            unsubscribeResenas = onSnapshot(q, (snapshot) => {
+                window.resenasBD = []; snapshot.forEach((doc) => window.resenasBD.push(doc.data()));
+                window.resenasBD.sort((a, b) => { let tA = a.timestamp ? a.timestamp.toMillis() : Date.now(); let tB = b.timestamp ? b.timestamp.toMillis() : Date.now(); return tB - tA; });
+                window.renderizarDatos();
+            });
+        }
+
+        window.filtrarMateria = (mat) => {
+            window.materiaActualSeleccionada = mat;
+            const btnNormal = "px-5 py-2.5 rounded-xl text-sm font-semibold transition-all bg-transparent text-slate-400 hover:text-white border border-transparent hover:border-white/10 hover:bg-white/5";
+            const btnActivo = "px-5 py-2.5 rounded-xl text-sm font-bold transition-all bg-violet-600 text-white shadow-lg shadow-violet-600/20 border border-violet-500";
+            
+            document.getElementById("btn-mat-Todas").className = (mat === "Todas") ? btnActivo : btnNormal;
+            window.docenteActivo.materias.forEach(m => {
+                const btn = document.getElementById("btn-mat-" + m.replace(/\s/g, ''));
+                if(btn) btn.className = (m === mat) ? btnActivo : btnNormal;
+            });
+            window.renderizarDatos();
+        };
+
+            window.renderizarDatos = () => {
+            const contenedor = document.getElementById("contenedor-comentarios"); contenedor.innerHTML = "";
+            const filtradas = window.materiaActualSeleccionada === "Todas" ? window.resenasBD : window.resenasBD.filter(r => r.materia === window.materiaActualSeleccionada);
+            document.getElementById("contador-opiniones").innerText = filtradas.length;
+
+            if(filtradas.length === 0) {
+                contenedor.innerHTML = `<div class="col-span-full text-center py-10 text-slate-500 bg-[#151c2f] rounded-2xl">Aún no hay reseñas para este filtro.</div>`;
+                actualizarGraficoCustom([0,0,0], "0.0");
+                window.dibujarEstrellas(0); // <--- Actualiza las estrellas a cero
+                document.getElementById('contenido-detalles').innerHTML = "Sin datos suficientes."; return;
+            }
+
+            let s={q1:0,q2:0,q3:0,q4:0,q5:0,q6:0,q7:0,q8:0,q9:0,q10:0};
+
+            filtradas.forEach(item => {
+                let q1 = item.q1||3; let q2 = item.q2||3; let q3 = item.q3||3; let q4 = item.q4||3;
+                let q5 = item.q5||3; let q6 = item.q6||3; let q7 = item.q7||3; let q8 = item.q8||3;
+                let q9 = item.q9||3; let q10 = item.q10||3;
+
+                s.q1+=q1; s.q2+=q2; s.q3+=q3; s.q4+=q4; s.q5+=q5; s.q6+=q6; s.q7+=q7; s.q8+=q8; s.q9+=q9; s.q10+=q10;
+                
+                let promTarjeta = ((q1+q2+q3+q4+q5+q6+q7+q8+q9+q10)/10).toFixed(1);
+
+                contenedor.innerHTML += `
+                    <div class="glass-panel p-6 rounded-3xl flex flex-col justify-between">
+                        <div>
+                            <div class="flex justify-between items-start mb-4">
+                                <div class="flex items-center gap-2 text-xs font-semibold text-violet-400 bg-violet-500/10 border border-violet-500/20 px-2 py-1 rounded-lg">
+                                    <i class="fa-solid fa-book-open"></i> ${item.materia.replace("Informática","Info").replace("Matemática","Mate")}
+                                </div>
+                                <span class="text-[10px] text-slate-400">${item.semestre} '${item.gestion.slice(-2)}</span>
+                            </div>
+                            <p class="text-sm text-slate-300 leading-relaxed mb-6 font-medium">"${item.texto}"</p>
+                        </div>
+                        <div class="pt-4 border-t border-white/5 flex items-center justify-between">
+                            <div class="flex items-center gap-3">
+                                <div class="w-8 h-8 rounded-full bg-indigo-600 flex items-center justify-center text-white font-bold text-xs">${item.autor.charAt(0).toUpperCase()}</div>
+                                <div>
+                                    <div class="text-xs text-white font-bold">${item.autor}</div>
+                                    <div class="text-[10px] text-slate-500">Estudiante</div>
+                                </div>
+                            </div>
+                            <div class="flex items-center gap-1 text-amber-500 font-bold">
+                                <i class="fa-solid fa-star text-sm"></i> ${promTarjeta}
+                            </div>
+                        </div>
+                    </div>`;
+            });
+
+            const n = filtradas.length;
+            const cat_ped = ((s.q1/n) + (s.q2/n) + (s.q3/n) + (s.q4/n)) / 4;
+            const cat_resp = ((s.q5/n) + (s.q6/n) + (s.q7/n) + (s.q8/n)) / 4;
+            const cat_eval = ((s.q9/n) + (s.q10/n)) / 2;
+
+            const global = ((cat_ped + cat_resp + cat_eval) / 3).toFixed(1);
+            
+            actualizarGraficoCustom([cat_ped, cat_resp, cat_eval], global);
+            window.dibujarEstrellas(parseFloat(global)); // <--- Pinta las estrellas exactas
+
+            // Generador de mini estrellas para las sub-preguntas
+            const getMiniStars = (val, colorClass) => {
+                let html = "";
+                for(let i=1; i<=5; i++){
+                    if(val >= i) html += `<i class="fa-solid fa-star ${colorClass}"></i>`;
+                    else if(val >= i - 0.5) html += `<i class="fa-solid fa-star-half-stroke ${colorClass}"></i>`;
+                    else html += `<i class="fa-regular fa-star text-slate-800"></i>`;
+                }
+                return html;
+            };
+
+            const p1=(s.q1/n).toFixed(1), p2=(s.q2/n).toFixed(1), p3=(s.q3/n).toFixed(1), p4=(s.q4/n).toFixed(1);
+            const p5=(s.q5/n).toFixed(1), p6=(s.q6/n).toFixed(1), p7=(s.q7/n).toFixed(1), p8=(s.q8/n).toFixed(1);
+            const p9=(s.q9/n).toFixed(1), p10=(s.q10/n).toFixed(1);
+
+            document.getElementById('contenido-detalles').innerHTML = `
+                <div class="bg-[#0f172a] border border-amber-500/30 rounded-2xl p-5 flex flex-col justify-between space-y-5">
+                    <div class="bg-amber-500/10 border border-amber-500/20 px-4 py-3 rounded-xl flex items-center justify-between">
+                        <div class="flex items-center gap-2.5 font-black text-amber-400 tracking-wider text-xs uppercase">
+                            <div class="w-7 h-7 rounded-lg bg-amber-500/20 flex items-center justify-center text-amber-400"><i class="fa-solid fa-graduation-cap"></i></div>
+                            Pedagogía
+                        </div>
+                        <div class="text-amber-400 font-black text-xs flex items-center gap-1"><i class="fa-solid fa-star"></i> ${cat_ped.toFixed(1)}</div>
+                    </div>
+                    <div class="space-y-4 px-1 text-xs font-bold text-slate-300">
+                        <div class="flex items-center justify-between"><span class="flex gap-3 truncate pr-2"><span class="text-amber-500 font-mono w-4">1</span> Explicaciones claras</span> <div class="flex items-center gap-2 shrink-0"><span class="text-white w-6 text-right">${p1}</span> <span class="flex gap-0.5 text-[10px]">${getMiniStars(p1, 'text-amber-400')}</span></div></div>
+                        <div class="flex items-center justify-between"><span class="flex gap-3 truncate pr-2"><span class="text-amber-500 font-mono w-4">2</span> Resuelve dudas</span> <div class="flex items-center gap-2 shrink-0"><span class="text-white w-6 text-right">${p2}</span> <span class="flex gap-0.5 text-[10px]">${getMiniStars(p2, 'text-amber-400')}</span></div></div>
+                        <div class="flex items-center justify-between"><span class="flex gap-3 truncate pr-2"><span class="text-amber-500 font-mono w-4">3</span> Escucha consultas</span> <div class="flex items-center gap-2 shrink-0"><span class="text-white w-6 text-right">${p3}</span> <span class="flex gap-0.5 text-[10px]">${getMiniStars(p3, 'text-amber-400')}</span></div></div>
+                        <div class="flex items-center justify-between"><span class="flex gap-3 truncate pr-2"><span class="text-amber-500 font-mono w-4">4</span> Despierta interés por la materia</span> <div class="flex items-center gap-2 shrink-0"><span class="text-white w-6 text-right">${p4}</span> <span class="flex gap-0.5 text-[10px]">${getMiniStars(p4, 'text-amber-400')}</span></div></div>
+                    </div>
+                </div>
+
+                <div class="bg-[#0f172a] border border-blue-500/30 rounded-2xl p-5 flex flex-col justify-between space-y-5">
+                    <div class="bg-blue-500/10 border border-blue-500/20 px-4 py-3 rounded-xl flex items-center justify-between">
+                        <div class="flex items-center gap-2.5 font-black text-blue-400 tracking-wider text-xs uppercase">
+                            <div class="w-7 h-7 rounded-lg bg-blue-500/20 flex items-center justify-center text-blue-400"><i class="fa-solid fa-briefcase"></i></div>
+                            Responsabilidad
+                        </div>
+                        <div class="text-blue-400 font-black text-xs flex items-center gap-1"><i class="fa-solid fa-star"></i> ${cat_resp.toFixed(1)}</div>
+                    </div>
+                    <div class="space-y-4 px-1 text-xs font-bold text-slate-300">
+                        <div class="flex items-center justify-between"><span class="flex gap-3 truncate pr-2"><span class="text-blue-400 font-mono w-4">5</span> Asiste a clases</span> <div class="flex items-center gap-2 shrink-0"><span class="text-white w-6 text-right">${p5}</span> <span class="flex gap-0.5 text-[10px]">${getMiniStars(p5, 'text-blue-400')}</span></div></div>
+                        <div class="flex items-center justify-between"><span class="flex gap-3 truncate pr-2"><span class="text-blue-400 font-mono w-4">6</span> Puntualidad</span> <div class="flex items-center gap-2 shrink-0"><span class="text-white w-6 text-right">${p6}</span> <span class="flex gap-0.5 text-[10px]">${getMiniStars(p6, 'text-blue-400')}</span></div></div>
+                        <div class="flex items-center justify-between"><span class="flex gap-3 truncate pr-2"><span class="text-blue-400 font-mono w-4">7</span> Cumple horarios de consulta</span> <div class="flex items-center gap-2 shrink-0"><span class="text-white w-6 text-right">${p7}</span> <span class="flex gap-0.5 text-[10px]">${getMiniStars(p7, 'text-blue-400')}</span></div></div>
+                        <div class="flex items-center justify-between"><span class="flex gap-3 truncate pr-2"><span class="text-blue-400 font-mono w-4">8</span> Entrega notas a tiempo</span> <div class="flex items-center gap-2 shrink-0"><span class="text-white w-6 text-right">${p8}</span> <span class="flex gap-0.5 text-[10px]">${getMiniStars(p8, 'text-blue-400')}</span></div></div>
+                    </div>
+                </div>
+
+                <div class="bg-[#0f172a] border border-red-500/30 rounded-2xl p-5 flex flex-col justify-start space-y-5">
+                    <div class="bg-red-500/10 border border-red-500/20 px-4 py-3 rounded-xl flex items-center justify-between">
+                        <div class="flex items-center gap-2.5 font-black text-red-400 tracking-wider text-xs uppercase">
+                            <div class="w-7 h-7 rounded-lg bg-red-500/20 flex items-center justify-center text-red-400"><i class="fa-solid fa-clipboard-check"></i></div>
+                            Evaluación
+                        </div>
+                        <div class="text-red-400 font-black text-xs flex items-center gap-1"><i class="fa-solid fa-star"></i> ${cat_eval.toFixed(1)}</div>
+                    </div>
+                    <div class="space-y-4 px-1 text-xs font-bold text-slate-300 pt-1">
+                        <div class="flex items-center justify-between"><span class="flex gap-3 truncate pr-2"><span class="text-red-400 font-mono w-4">9</span> Evaluacion acorde lo avanzado</span> <div class="flex items-center gap-2 shrink-0"><span class="text-white w-6 text-right">${p9}</span> <span class="flex gap-0.5 text-[10px]">${getMiniStars(p9, 'text-red-400')}</span></div></div>
+                        <div class="flex items-start justify-between"><span class="flex gap-2.5 pr-2"><span class="text-red-400 font-mono w-5 shrink-0">10</span><span class="leading-tight">dificultad del examen<br><span class="text-[10px] text-slate-400 font-normal normal-case">(5 estrellas significa que el examen es muy facil)</span></span></span> <div class="flex items-center gap-2 shrink-0"><span class="text-white w-6 text-right">${p10}</span> <span class="flex gap-0.5 text-[10px]">${getMiniStars(p10, 'text-red-400')}</span></div></div>                    </div>
+                </div>
+            `;
+        };
+
+        // NUEVO MOTOR: Función que dibuja las estrellas (Pegar esto justo debajo del bloque anterior)
+        window.dibujarEstrellas = (promedio) => {
+            const cont = document.getElementById("estrellas-promedio");
+            if(!cont) return;
+            let html = "";
+            for(let i=1; i<=5; i++){
+                if(promedio >= i) { 
+                    html += '<i class="fa-solid fa-star"></i>'; // Estrella llena
+                } else if(promedio >= i - 0.5) { 
+                    html += '<i class="fa-solid fa-star-half-stroke"></i>'; // Media estrella
+                } else { 
+                    html += '<i class="fa-regular fa-star"></i>'; // Estrella hueca
+                }
+            }
+            cont.innerHTML = html;
+        };
+
+        // Constructor Custom de Barras tipo Imagen 1 (Reemplaza a Chart.js por estética exacta)
+        function actualizarGraficoCustom(valores, promedioGlobal) { 
+            document.getElementById("nota-promedio-docente").innerText = promedioGlobal; 
+            const contenedor = document.getElementById("contenedor-barras-custom");
+            
+            const etiquetas = [
+                { nombre: "Pedagogía", icon: "fa-graduation-cap", color: "text-amber-500", bg: "bg-amber-500", val: valores[0] },
+                { nombre: "Responsabilidad", icon: "fa-user-check", color: "text-blue-500", bg: "bg-blue-500", val: valores[1] },
+                { nombre: "Evaluación", icon: "fa-chart-line", color: "text-red-500", bg: "bg-red-500", val: valores[2] }
+            ];
+
+            let html = "";
+            etiquetas.forEach(item => {
+                let porcentaje = (item.val / 5) * 100;
+                let valFixed = item.val.toFixed(1);
+                html += `
+                    <div class="flex items-center gap-3">
+                        <div class="w-8 h-8 rounded bg-[#0f172a] border border-white/5 flex items-center justify-center ${item.color} text-xs shrink-0"><i class="fa-solid ${item.icon}"></i></div>
+                        <div class="w-28 text-xs font-semibold text-slate-300 truncate">${item.nombre}</div>
+                        <div class="flex-1 h-2 bg-[#0f172a] rounded-full overflow-hidden">
+                            <div class="h-full ${item.bg} rounded-full" style="width: ${porcentaje}%"></div>
+                        </div>
+                        <div class="w-6 text-right text-xs font-bold text-white">${valFixed}</div>
+                    </div>
+                `;
+            });
+
+            // Regla de números abajo
+            html += `
+                <div class="flex justify-between pl-44 pr-6 mt-2 text-[10px] text-slate-500 font-bold">
+                    <span>0</span><span>1</span><span>2</span><span>3</span><span>4</span><span>5</span>
+                </div>
+            `;
+            contenedor.innerHTML = html;
+        }
+
+        // Ejecución inicial: Arrancamos en vista INICIO
+        window.ejecutarBusqueda();
+
+    </script>
+</body>
+</html>
